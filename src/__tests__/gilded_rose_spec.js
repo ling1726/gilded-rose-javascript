@@ -16,6 +16,60 @@ describe("Gilded Rose", function () {
         expect(items[0].name).toEqual("fixme");
     });
 
+    describe('Conjured item', () => {
+        describe('Before sellin', () => {
+            const standardTestCases = [
+                {
+                    itemName: 'Conjured',
+                    initialQuality: 10,
+                    expectedQuality: 8,
+                },
+                {
+                    itemName: 'Conjured',
+                    initialQuality: 0,
+                    expectedQuality: 0,
+                },
+            ]
+
+            // Standard conditions
+            standardTestCases.forEach((testCase) => {
+                const { initialQuality, itemName, expectedQuality } = testCase;
+                it(`should increase ${itemName} quality from ${initialQuality} to ${expectedQuality}`, () => {
+                    gildedRose.pushItem(new Item(itemName, 1, initialQuality));
+                    const items = gildedRose.updateQuality();
+                    expect(items[0].quality).toEqual(expectedQuality);
+                });
+            })
+
+
+        })
+
+
+
+        describe('After sellin', () => {
+            const afterSellInTestCases = [
+                {
+                    itemName: 'Conjured',
+                    initialQuality: 10,
+                    expectedQuality: 6,
+                },
+                {
+                    itemName: 'Conjured',
+                    initialQuality: 0,
+                    expectedQuality: 0,
+                },
+            ]
+            afterSellInTestCases.forEach((testCase) => {
+                const { initialQuality, itemName, expectedQuality } = testCase;
+                it(`should increase ${itemName} quality from ${initialQuality} to ${expectedQuality}`, () => {
+                    gildedRose.pushItem(new Item(itemName, -1, initialQuality));
+                    const items = gildedRose.updateQuality();
+                    expect(items[0].quality).toEqual(expectedQuality);
+                });
+            })
+        })
+    });
+
     describe('Aged Brie', () => {
         describe('Before sellin', () => {
             const standardTestCases = [

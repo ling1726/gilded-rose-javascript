@@ -1,3 +1,7 @@
+const MAX_QUALITY = 50;
+const MIN_QUALITY = 0;
+const MIN_DATE = 0;
+
 export class Item {
   /**
    * Name of the item
@@ -10,6 +14,14 @@ export class Item {
     this.sellIn = sellIn;
     this.quality = quality;
   }
+
+  decrementQuality () { return this.quality -= 1; }
+  incrementQuality () { return this.quality += 1 }
+  destroyItem () { return this.quality = 0 }
+  decrementSellIn () { return this.sellIn -= 1 }
+  canIncreaseQuality () {return this.quality < MAX_QUALITY}
+  isBroken () { return this.quality <= MIN_QUALITY }
+  isExpired () {return this.sellIn < MIN_DATE}
 }
 
 export class StandardItem extends Item {
@@ -73,5 +85,25 @@ export class LegendaryItem extends Item {
 
   static isInstance(item) {
     return item instanceof (LegendaryItem);
+  }
+}
+
+export class ConjuredItem extends Item {
+  constructor(name, sellIn, quality) {
+    super(name, sellIn, quality);
+  }
+
+  updateQuality() {
+    this.decrementSellIn();
+
+    if (this.isExpired()) {
+      this.quality = Math.max(MIN_QUALITY, this.quality - 4);
+    } else {
+      this.quality = Math.max(MIN_QUALITY, this.quality - 2);
+    }
+  }
+
+  static isInstance(item) {
+    return item instanceof (ConjuredItem);
   }
 }

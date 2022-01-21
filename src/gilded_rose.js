@@ -1,4 +1,4 @@
-import { AgedBrie, BackstagePass, LegendaryItem, StandardItem } from './items';
+import { AgedBrie, BackstagePass, ConjuredItem, LegendaryItem, StandardItem } from './items';
 
 const MAX_QUALITY = 50;
 const MIN_QUALITY = 0;
@@ -19,6 +19,8 @@ export class Shop {
         return new LegendaryItem(item.name, item.sellIn, item.quality);
       case 'Backstage passes to a TAFKAL80ETC concert':
         return new BackstagePass(item.name, item.sellIn, item.quality);
+      case 'Conjured':
+        return new ConjuredItem(item.name, item.sellIn, item.quality);
       default:
         return new StandardItem(item.name, item.sellIn, item.quality);
     }
@@ -33,11 +35,12 @@ export class Shop {
   }
 
   /**
-   * Called at the end of the day.
-   * TODO what it does
-   * @returns 
+   * Legacy method to update the quality of items
+   * If introducing new items, please introduce a new domain model that extends {@see Item} i.e. {@see ConjuredItem}
+   * @param {Item} item 
+   * @deprecated
    */
-  updateQuality() {
+  legacyUpdateQuality(item) {
     const decrementQuality = (item) => item.quality -= 1;
     const incrementQuality = (item) => item.quality += 1;
     const destroyItem = (item) => item.quality = 0;
@@ -46,54 +49,73 @@ export class Shop {
     const isBroken = (item) => item.quality <= MIN_QUALITY;
     const isExpired = (item) => item.sellIn < MIN_DATE;
 
-    this.items.forEach(item => {
-      // Items that decrease in quality
-      if (!AgedBrie.isInstance(item) && !BackstagePass.isInstance(item)) {
-        if (!isBroken(item)) {
-          if (!LegendaryItem.isInstance(item)) {
+    // Items that decrease in quality
+    if (!AgedBrie.isInstance(item) && !BackstagePass.isInstance(item)) {
+      if (!isBroken(item)) {
+        if (!LegendaryItem.isInstance(item)) {
+          if (isExpired(item)) {
+            decrementQuality(item);
+          }
+          if (!isBroken(item)) {
             // Standard item
             decrementQuality(item);
           }
         }
-      } else { // Aged brie or backstage pass 
+      }
+    } else { // Aged brie or backstage pass 
+      if (canIncreaseQuality(item)) {
+        incrementQuality(item);
+        if (BackstagePass.isInstance(item)) {
+          if (BackstagePass.isDoublePrice(item)) {
+            if (canIncreaseQuality(item)) {
+              incrementQuality(item);
+            }
+          }
+          if (BackstagePass.isTriplePrice(item)) {
+            if (canIncreaseQuality(item)) {
+              incrementQuality(item);
+            }
+          }
+        }
+      }
+    }
+    if (!LegendaryItem.isInstance(item)) {
+      decrementSellIn(item);
+    }
+    if (isExpired(item)) {
+      if (!AgedBrie.isInstance(item)) {
+        if (BackstagePass.isInstance(item)) {
+          // BackstagePass
+          destroyItem(item);
+        }
+      } else {
+        // AgedBrie
         if (canIncreaseQuality(item)) {
           incrementQuality(item);
-          if (BackstagePass.isInstance(item)) {
-            if (BackstagePass.isDoublePrice(item)) {
-              if (canIncreaseQuality(item)) {
-                incrementQuality(item);
-              }
-            }
-            if (BackstagePass.isTriplePrice(item)) {
-              if (canIncreaseQuality(item)) {
-                incrementQuality(item);
-              }
-            }
-          }
         }
       }
-      if (!LegendaryItem.isInstance(item)) {
-        decrementSellIn(item);
-      }
-      if (isExpired(item)) {
-        if (!AgedBrie.isInstance(item)) {
-          if (!BackstagePass.isInstance(item)) {
-            if (!isBroken(item)) {
-              if (!LegendaryItem.isInstance(item)) {
-                // StandardItem
-                decrementQuality(item);
-              }
-            }
-          } else {
-            // BackstagePass
-            destroyItem(item);
-          }
-        } else {
-          // AgedBrie
-          if (canIncreaseQuality(item)) {
-            incrementQuality(item);
-          }
-        }
+    }
+  }
+
+  /**
+   * Checks if item does not yet have a valid domain model to update quality
+   * @param {Item} item 
+   */
+  isLegacyItem(item) {
+    return StandardItem.isInstance(item) || AgedBrie.isInstance(item) || LegendaryItem.isInstance(item) || BackstagePass.isInstance(item);
+  }
+
+  /**
+   * Called at the end of the day.
+   * TODO what it does
+   * @returns 
+   */
+  updateQuality() {
+    this.items.forEach(item => {
+      if (!this.isLegacyItem(item)) {
+        item.updateQuality();
+      } else {
+        this.legacyUpdateQuality(item);
       }
 
     });
